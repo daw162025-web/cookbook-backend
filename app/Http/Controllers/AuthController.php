@@ -23,6 +23,7 @@ class AuthController extends Controller
             'name' => $validatedData['name'],
             'email' => $validatedData['email'],
             'password' => Hash::make($validatedData['password']), //Contraseña encriptada
+            'role' => 'user', // Rol por defecto
         ]);
 
         // Crear el Token
@@ -39,14 +40,24 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         // Validar
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
             return response()->json([
-                'message' => 'Credenciales incorrectas'
-            ], 401);
+                'message' => 'El email no está registrado'
+            ], 404);
         }
 
-        // Buscar al usuario si la contraseña es correcta
-        $user = User::where('email', $request['email'])->firstOrFail();
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'message' => 'La contraseña es incorrecta'
+            ], 401);
+        }
 
         // Crear un nuevo token
         $token = $user->createToken('auth_token')->plainTextToken;
