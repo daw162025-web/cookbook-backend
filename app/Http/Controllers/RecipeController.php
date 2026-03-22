@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\DB;
 
 class RecipeController extends Controller
 {
+    /*
+     * Lista y filtra las recetas
+     **/
     public function index(Request $request)
     {
         $query = Recipe::where('status', 'published')
@@ -38,63 +41,9 @@ class RecipeController extends Controller
     }
 
     // POST /api/recipes
-//    public function store(Request $request)
-//    {
-//        // Validacion de datos
-//        $validatedData = $request->validate([
-//            'title'        => 'required|string|max:255',
-//            'description'  => 'required|string',
-//            'instructions' => 'required|string',
-//            'category_id'  => 'required|exists:categories,id', // Que la categoría exista
-//            'duration'     => 'required|integer|min:1',       // Minutos
-//            'difficulty'   => 'required|in:easy,medium,hard', // Solo permitimos estos valores
-//            'image'        => 'required|image|mimes:jpeg,png,jpg|max:2048', // Imagen real, máx 2MB
-//        ]);
-//
-//        try {
-//            // subir imagen a cloudinary
-//            $imageUrl = Cloudinary::upload($request->file('image')->getRealPath(), [
-//                'folder' => 'cookbook_recetas', // Nombre de la carpeta en tu nube
-//                'transformation' => [
-//                    'width' => 1000,
-//                    'quality' => 'auto',
-//                    'fetch_format' => 'auto'
-//                ]
-//            ])->getSecurePath();
-//
-//            // Crear la receta en la bd
-//            $recipe = Recipe::create([
-//                'user_id'      => Auth::id(), // El ID del usuario conectado, gracias al token
-//                'category_id'  => $validatedData['category_id'],
-//                'title'        => $validatedData['title'],
-//                'description'  => $validatedData['description'],
-//                'instructions' => $validatedData['instructions'],
-//                'duration'     => $validatedData['duration'],
-//                'difficulty'   => $validatedData['difficulty'],
-//                'image_url'    => $imageUrl, // Guardamos la URL de Cloudinary
-//                'status'       => 'published' // La publicamos directamente, por ahora
-//            ]);
-//
-//            // respuesta
-//            return response()->json([
-//                'message' => 'Receta creada con éxito',
-//                'recipe'  => $recipe
-//            ], 201);
-//
-//        } catch (\Exception $e) {
-//            return response()->json([
-//                'message' => 'Error al subir la receta',
-//                'error'   => $e->getMessage()
-//            ], 500);
-//        }
-//    }
-    // POST /api/recipes
-
-    // POST /api/recipes
     public function store(Request $request)
     {
-        // 1. Validacion de datos
-        // Nota: steps e ingredients vienen stringificados porque viajan por FormData
+        //Validacion de datos
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
@@ -103,12 +52,12 @@ class RecipeController extends Controller
             'difficulty' => 'required|in:easy,medium,hard',
             'images' => 'required|array',
             'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
-            'ingredients' => 'required|string', 
+            'ingredients' => 'required|string',
             'steps' => 'required|string',
         ]);
 
         try {
-            // --- LA BALA DE PLATA: Múltiples fotos a Cloudinary ---
+            //Multiples fotos a Cloudinary
             $imageUrls = [];
             $cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
 
@@ -121,8 +70,7 @@ class RecipeController extends Controller
                 }
             }
 
-            // 3. Crear la receta en la bd
-            // Guardamos todo de forma segura
+            // Crear la receta en la bd
             $recipe = Recipe::create([
                 'user_id' => Auth::id(),
                 'category_id' => $validatedData['category_id'],
@@ -131,18 +79,18 @@ class RecipeController extends Controller
                 'instructions' => json_encode(json_decode($validatedData['steps'])), // Pasos en JSON listos
                 'duration' => $validatedData['duration'],
                 'difficulty' => $validatedData['difficulty'],
-                'image_url' => json_encode($imageUrls), // Las N fotos guardadas como Array stringificado en DB
+                'image_url' => json_encode($imageUrls), // las imagenes a json
                 'status' => 'published'
             ]);
 
-            // Sincronizamos los ingredientes inteligentemente
+            // Sincronizamos los ingredientes
             $ingredientsArray = json_decode($validatedData['ingredients'], true);
 
             if (is_array($ingredientsArray)) {
                 $ingredientesSincronizar = [];
 
                 foreach ($ingredientsArray as $ingrediente) {
-                    // ¿Existe este ingrediente? Si no, ¡lo creo al vuelo! (Reciclaje 100%)
+                    // Si no existe el ingrediente se crea
                     $dbIngredient = \App\Models\Ingredient::firstOrCreate(
                         ['name' => $ingrediente['nombre']],
                         ['type' => 'other']
@@ -150,14 +98,14 @@ class RecipeController extends Controller
 
                     $ingredientesSincronizar[$dbIngredient->id] = [
                         'quantity' => $ingrediente['cantidad'] ?? '',
-                        'unit' => '-' // Ya no usamos unidades separadas visualmente
+                        'unit' => '-'
                     ];
                 }
 
                 $recipe->ingredients()->sync($ingredientesSincronizar);
             }
 
-            // 4. respuesta
+            //respuesta
             return response()->json([
                 'message' => 'Receta creada con éxito con ' . count($imageUrls) . ' fotos adjuntas.',
                 'recipe' => $recipe->load('ingredients')
@@ -176,15 +124,15 @@ class RecipeController extends Controller
     // PUT/PATCH /api/recipes/{id}
     public function update(Request $request, $id)
     {
-        // 1. Buscamos la receta
+        // Buscamos la receta
         $recipe = Recipe::findOrFail($id);
 
-        // 2. Comprobamos que el usuario que intenta editar es el dueño
+        //Comprobamos que el usuario que intenta editar es el dueño
         if ($recipe->user_id !== Auth::id()) {
             return response()->json(['message' => 'No tienes permiso para editar esta receta'], 403);
         }
 
-        // 3. Validamos los datos (la imagen ahora es opcional)
+        //Validamos los datos
         $validatedData = $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
@@ -198,7 +146,7 @@ class RecipeController extends Controller
         ]);
 
         try {
-            // 4. ¿Ha subido una imagen nueva?
+            //Comprobamos si se ha subido nueva imagen
             if ($request->hasFile('image')) {
                 $cloudinary = new \Cloudinary\Cloudinary(env('CLOUDINARY_URL'));
                 $uploadResult = $cloudinary->uploadApi()->upload($request->file('image')->getRealPath(), [
@@ -207,17 +155,17 @@ class RecipeController extends Controller
                 $recipe->image_url = $uploadResult['secure_url']; // Actualizamos la URL
             }
 
-            // 5. Actualizamos el resto de campos si vienen en la petición
+            // Actualizamos el resto de campos
             $recipe->update($request->except(['image', 'ingredients']));
 
-            // 6. Actualizamos los ingredientes si los ha enviado
+            // Actualizamos ingredientes
             if ($request->has('ingredients')) {
                 $recipe->ingredients()->sync($request->ingredients);
             }
 
             return response()->json([
                 'message' => 'Receta actualizada con éxito',
-                'recipe' => $recipe->load('ingredients') // Devolvemos la receta con sus ingredientes
+                'recipe' => $recipe->load('ingredients')
             ]);
 
         }
@@ -240,7 +188,7 @@ class RecipeController extends Controller
         }
 
         try {
-            // Borramos la receta (Laravel borrará automáticamente la relación con los ingredientes en la tabla pivote)
+            // Borramos la receta
             $recipe->delete();
 
             return response()->json([
@@ -271,9 +219,9 @@ class RecipeController extends Controller
     {
         return Recipe::where('category_id', $id)
             ->where('status', 'published')
-            ->with('user:id,name') // Carga solo el nombre del autor
+            ->with('user:id,name') // nombre del autor
             ->withCount(['ratings as avg_rating' => function ($query) {
-            $query->select(DB::raw('coalesce(avg(score), 0)')); // Calcula el promedio
+            $query->select(DB::raw('coalesce(avg(score), 0)')); // Calcula el promedio de las puntuaciones
         }])
             ->get();
     }

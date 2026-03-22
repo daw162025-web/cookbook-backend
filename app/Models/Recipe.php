@@ -15,22 +15,24 @@ class Recipe extends Model
 
     protected $casts = [];
 
-    // Accessor seguro para image_url: convierte a array sin importar qué haya en BD
+    /**
+     * Accesor para imageUrl: Convierte el string de la BD en un array
+     * para Angular y asegura que las URLs de Cloudinary estén optimizadas (metodo para mejorar calidad).
+     */
     protected function imageUrl(): Attribute
     {
         return Attribute::make(
             get: function ($value) {
                 if (empty($value)) return [];
-                // Solo intentar decodificar si parece un JSON array
+                // decodificar si parece un JSON array
                 if ($value[0] === '[') {
                     $decoded = json_decode($value, true);
-                    // Limpiar estado global de json_last_error para no contaminar JsonResponse
                     json_encode(null);
                     if (is_array($decoded)) {
                         return array_map([$this, 'optimizeCloudinaryUrl'], $decoded);
                     }
                 }
-                return [$this->optimizeCloudinaryUrl($value)]; // String plano: lo envolvemos
+                return [$this->optimizeCloudinaryUrl($value)];
             },
             set: function ($value) {
                 return is_array($value) ? json_encode($value) : $value;
@@ -38,20 +40,24 @@ class Recipe extends Model
         );
     }
 
-    // Inserta transformaciones de calidad en URLs de Cloudinary
+    /**
+     * Modifica la URL de Cloudinary para aplicar
+     * compresión automática (q_auto) y formato inteligente (f_auto).
+     */
     private function optimizeCloudinaryUrl(string $url): string
     {
         if (str_contains($url, 'res.cloudinary.com')) {
-            // Buscamos /upload/ y nos aseguramos de no añadir duplicados
             if (!str_contains($url, '/q_auto')) {
-                // Insertamos q_auto,f_auto y un ancho razonable (1200px para detalle, las cards lo escalan con CSS)
                 return str_replace('/upload/', '/upload/q_auto:best,f_auto,w_1200/', $url);
             }
         }
         return $url;
     }
 
-    // Accessor seguro para instructions: convierte a array sin importar qué haya en BD
+    /**
+     * Accesor para instrucciones: Permite guardar los pasos de la receta
+     * como un JSON y recuperarlos como una lista para Angular.
+     */
     protected function instructions(): Attribute
     {
         return Attribute::make(
