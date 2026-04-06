@@ -9,6 +9,7 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        return response()->json(Category::all(), 200);
+        // Devolvemos las categorías principales con sus subcategorías
+        return response()->json(Category::whereNull('parent_id')->with('children')->get(), 200);
     }
 }

@@ -16,13 +16,13 @@ class RecipeController extends Controller
     public function index(Request $request)
     {
         $query = Recipe::where('status', 'published')
-            ->with(['user', 'category', 'ingredients']);
+            ->with(['user', 'categories', 'ingredients']);
 
         if ($request->has('search')) {
             $searchTerm = $request->query('search');
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('title', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('description', 'like', '%' . $searchTerm . '%');
+                    ->orWhere('description', 'like', '%' . $searchTerm . '%');
             });
         }
 
@@ -34,22 +34,22 @@ class RecipeController extends Controller
     public function show($id)
     {
         // Buscamos la receta, si no existe devuelve error
-        $recipe = Recipe::with(['user', 'category', 'ingredients', 'comments.user'])
+        $recipe = Recipe::with(['user', 'categories', 'ingredients', 'comments.user'])
             ->findOrFail($id);
 
         return response()->json($recipe);
     }
 
-    // POST /api/recipes
     public function store(Request $request)
     {
         //Validacion de datos
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'category_id' => 'required|exists:categories,id',
+            'category_ids' => 'required|array',
+            'category_ids.*' => 'exists:categories,id',
             'duration' => 'required|integer|min:1',
-            'difficulty' => 'required|in:easy,medium,hard',
+            'difficulty' => 'required|in:facil,media,dificil',
             'images' => 'required|array',
             'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
             'ingredients' => 'required|string',
@@ -73,15 +73,17 @@ class RecipeController extends Controller
             // Crear la receta en la bd
             $recipe = Recipe::create([
                 'user_id' => Auth::id(),
-                'category_id' => $validatedData['category_id'],
                 'title' => $validatedData['title'],
                 'description' => $validatedData['description'],
-                'instructions' => json_encode(json_decode($validatedData['steps'])), // Pasos en JSON listos
+                'instructions' => json_encode(json_decode($validatedData['steps'])),
                 'duration' => $validatedData['duration'],
                 'difficulty' => $validatedData['difficulty'],
-                'image_url' => json_encode($imageUrls), // las imagenes a json
+                'image_url' => json_encode($imageUrls),
                 'status' => 'published'
             ]);
+
+            //Sincronizar las multiples categorías
+            $recipe->categories()->sync($validatedData['category_ids']);
 
             // Sincronizamos los ingredientes
             $ingredientsArray = json_decode($validatedData['ingredients'], true);
@@ -111,8 +113,7 @@ class RecipeController extends Controller
                 'recipe' => $recipe->load('ingredients')
             ], 201);
 
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al subir la receta',
                 'error' => $e->getMessage(),
@@ -121,7 +122,6 @@ class RecipeController extends Controller
         }
     }
 
-    // PUT/PATCH /api/recipes/{id}
     public function update(Request $request, $id)
     {
         // Buscamos la receta
@@ -136,48 +136,96 @@ class RecipeController extends Controller
         $validatedData = $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
-            'instructions' => 'sometimes|required|string',
-            'category_id' => 'sometimes|required|exists:categories,id',
+            'steps' => 'sometimes|required|string', // Equivalente a las intructions en JSON
+            'category_ids' => 'sometimes|required|array',
+            'category_ids.*' => 'exists:categories,id',
             'duration' => 'sometimes|required|integer|min:1',
-            'difficulty' => 'sometimes|required|in:easy,medium,hard',
-            'ingredients' => 'sometimes|array',
-            'ingredients.*' => 'exists:ingredients,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // nullable = opcional
+            'difficulty' => 'sometimes|required|in:facil,media,dificil',
+            'ingredients' => 'sometimes|required|string', // Espera JSON string con nombre y cantidad
+            'images' => 'sometimes|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         try {
-            //Comprobamos si se ha subido nueva imagen
-            if ($request->hasFile('image')) {
-                $cloudinary = new \Cloudinary\Cloudinary(env('CLOUDINARY_URL'));
-                $uploadResult = $cloudinary->uploadApi()->upload($request->file('image')->getRealPath(), [
-                    'folder' => 'cookbook_recetas'
-                ]);
-                $recipe->image_url = $uploadResult['secure_url']; // Actualizamos la URL
+            $finalImages = [];
+
+            // Recoger imagenes
+            if ($request->has('existing_images')) {
+                $existing = json_decode($request->input('existing_images'), true);
+                if (is_array($existing)) {
+                    $finalImages = $existing;
+                }
             }
 
-            // Actualizamos el resto de campos
-            $recipe->update($request->except(['image', 'ingredients']));
+            // Subir nuevas y adjuntarlas
+            if ($request->hasFile('images')) {
+                $cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
 
-            // Actualizamos ingredientes
+                foreach ($request->file('images') as $file) {
+                    $uploadResult = $cloudinary->uploadApi()->upload($file->getRealPath(), [
+                        'folder' => 'cookbook_recetas'
+                    ]);
+                    $finalImages[] = $uploadResult['secure_url'];
+                }
+            }
+
+            // Si mandó existing_images o fotos nuevas, actualizamos.
+            if ($request->has('existing_images') || $request->hasFile('images')) {
+                $recipe->image_url = json_encode($finalImages);
+            }
+
+            // Actualizamos los campos directos si existen en la request
+            if ($request->has('title'))
+                $recipe->title = $validatedData['title'];
+            if ($request->has('description'))
+                $recipe->description = $validatedData['description'];
+            if ($request->has('steps'))
+                $recipe->instructions = json_encode(json_decode($validatedData['steps']));
+            if ($request->has('duration'))
+                $recipe->duration = $validatedData['duration'];
+            if ($request->has('difficulty'))
+                $recipe->difficulty = $validatedData['difficulty'];
+
+            $recipe->save();
+
+            // Sincronizamos las categorías
+            if ($request->has('category_ids')) {
+                $recipe->categories()->sync($validatedData['category_ids']);
+            }
+
+            // Sincronizamos los ingredientes
             if ($request->has('ingredients')) {
-                $recipe->ingredients()->sync($request->ingredients);
+                $ingredientsArray = json_decode($validatedData['ingredients'], true);
+                if (is_array($ingredientsArray)) {
+                    $ingredientesSincronizar = [];
+                    foreach ($ingredientsArray as $ingrediente) {
+                        $dbIngredient = \App\Models\Ingredient::firstOrCreate(
+                            ['name' => $ingrediente['nombre']],
+                            ['type' => 'other']
+                        );
+                        $ingredientesSincronizar[$dbIngredient->id] = [
+                            'quantity' => $ingrediente['cantidad'] ?? '',
+                            'unit' => '-'
+                        ];
+                    }
+                    $recipe->ingredients()->sync($ingredientesSincronizar);
+                }
             }
 
             return response()->json([
                 'message' => 'Receta actualizada con éxito',
-                'recipe' => $recipe->load('ingredients')
+                'recipe' => $recipe->load(['ingredients', 'categories'])
             ]);
 
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'linea' => $e->getLine()
             ], 500);
         }
     }
 
-    // DELETE /api/recipes/{id}
     public function destroy($id)
     {
         $recipe = Recipe::findOrFail($id);
@@ -195,8 +243,7 @@ class RecipeController extends Controller
                 'message' => 'Receta eliminada correctamente'
             ]);
 
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar',
                 'error' => $e->getMessage()
@@ -207,22 +254,28 @@ class RecipeController extends Controller
     public function myRecipes()
     {
         return Recipe::where('user_id', Auth::id())
-            ->with(['category', 'ingredients'])
-            ->withCount(['ratings as avg_rating' => function ($query) {
-                $query->select(DB::raw('coalesce(avg(score), 0)'));
-            }])
+            ->with(['categories', 'ingredients'])
+            ->withCount([
+                'ratings as avg_rating' => function ($query) {
+                    $query->select(DB::raw('coalesce(avg(score), 0)'));
+                }
+            ])
             ->latest()
             ->get();
     }
 
     public function getByCategory($id)
     {
-        return Recipe::where('category_id', $id)
+        return Recipe::whereHas('categories', function ($q) use ($id) {
+            $q->where('categories.id', $id);
+        })
             ->where('status', 'published')
-            ->with('user:id,name') // nombre del autor
-            ->withCount(['ratings as avg_rating' => function ($query) {
-            $query->select(DB::raw('coalesce(avg(score), 0)')); // Calcula el promedio de las puntuaciones
-        }])
+            ->with(['user:id,name', 'categories'])
+            ->withCount([
+                'ratings as avg_rating' => function ($query) {
+                    $query->select(DB::raw('coalesce(avg(score), 0)'));
+                }
+            ])
             ->get();
     }
 }

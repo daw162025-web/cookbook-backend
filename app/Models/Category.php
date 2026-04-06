@@ -11,7 +11,18 @@ class Category extends Model
     use HasFactory;
     protected $fillable = ['name'];
 
-    public function recipes(){
-        return $this->hasMany(Recipe::class);
+    // Para obtener las subcategorías
+    public function children() {
+        return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    // Para obtener la categoría "padre"
+    public function parent() {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    // Relación con recetas (n:m)
+    public function recipes() {
+        return $this->belongsToMany(Recipe::class);
     }
 }

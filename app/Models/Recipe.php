@@ -8,69 +8,81 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 class Recipe extends Model
 {
     protected $table = 'recipes';
+
     protected $fillable = [
-        'user_id', 'category_id', 'title', 'description', 'instructions',
-        'duration', 'difficulty', 'status', 'image_url'
+        'user_id',
+        'title',
+        'description',
+        'instructions',
+        'duration',
+        'difficulty',
+        'status',
+        'image_url'
     ];
 
     protected $casts = [];
 
-    /**
-     * Accesor para imageUrl: Convierte el string de la BD en un array
-     * para Angular y asegura que las URLs de Cloudinary estén optimizadas (metodo para mejorar calidad).
-     */
-    protected function imageUrl(): Attribute
-    {
-        return Attribute::make(
-            get: function ($value) {
-                if (empty($value)) return [];
-                // decodificar si parece un JSON array
-                if ($value[0] === '[') {
-                    $decoded = json_decode($value, true);
-                    json_encode(null);
-                    if (is_array($decoded)) {
-                        return array_map([$this, 'optimizeCloudinaryUrl'], $decoded);
-                    }
-                }
-                return [$this->optimizeCloudinaryUrl($value)];
-            },
-            set: function ($value) {
-                return is_array($value) ? json_encode($value) : $value;
-            }
-        );
-    }
+//    public function getImageUrlAttribute($value)
+//    {
+//        if (!$value)
+//            return [];
+//
+//        $images = [];
+//        $trimmed = is_string($value) ? trim($value) : '';
+//
+//        if ($trimmed && str_starts_with($trimmed, '[')) {
+//            $decoded = json_decode($trimmed, true);
+//            $images = is_array($decoded) ? $decoded : [$value];
+//        } else {
+//            $images = is_array($value) ? $value : [$value];
+//        }
+//
+//        return array_values(array_filter(array_map(function ($url) {
+//            if (!is_string($url) || empty($url))
+//                return null;
+//            return $this->optimizeCloudinaryUrl($url);
+//        }, $images)));
+//    }
+//
+//    public function setImageUrlAttribute($value)
+//    {
+//        $this->attributes['image_url'] = is_array($value) ? json_encode($value) : $value;
+//    }
 
     /**
-     * Modifica la URL de Cloudinary para aplicar
-     * compresión automática (q_auto) y formato inteligente (f_auto).
+     * Optimiza la URL de Cloudinary
      */
-    private function optimizeCloudinaryUrl(string $url): string
-    {
-        if (str_contains($url, 'res.cloudinary.com')) {
-            if (!str_contains($url, '/q_auto')) {
-                return str_replace('/upload/', '/upload/q_auto:best,f_auto,w_1200/', $url);
-            }
-        }
-        return $url;
-    }
+//    private function optimizeCloudinaryUrl($url): string
+//    {
+//        if (!is_string($url) || empty($url))
+//            return '';
+//
+//        // Solo optimizamos si es una URL de Cloudinary real
+//        if (str_contains($url, 'res.cloudinary.com')) {
+//            // Evitamos duplicar la optimización si ya la tiene
+//            if (!str_contains($url, '/q_auto')) {
+//                return str_replace('/upload/', '/upload/q_auto:best,f_auto,w_1200/', $url);
+//            }
+//        }
+//
+//        return $url;
+//    }
 
     /**
-     * Accesor para instrucciones: Permite guardar los pasos de la receta
-     * como un JSON y recuperarlos como una lista para Angular.
+     * Accesor para instrucciones: Maneja los pasos como lista JSON.
      */
     protected function instructions(): Attribute
     {
         return Attribute::make(
             get: function ($value) {
-                if (empty($value)) return [];
-                // Solo intentar decodificar si parece un JSON array
+                if (empty($value))
+                    return [];
                 if ($value[0] === '[') {
                     $decoded = json_decode($value, true);
-                    // Limpiar estado global de json_last_error para no contaminar JsonResponse
-                    json_encode(null);
-                    if (is_array($decoded)) return $decoded;
+                    if (is_array($decoded))
+                        return $decoded;
                 }
-                return [$value]; // String plano: lo envolvemos
+                return [$value];
             },
             set: function ($value) {
                 return is_array($value) ? json_encode($value) : $value;
@@ -83,14 +95,22 @@ class Recipe extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function category()
+    /**
+     * Relación Muchos a Muchos con Categorías.
+     * Esto permite que una receta esté en "Postres", "Chocolate" y "Fácil" a la vez.
+     */
+    public function categories()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsToMany(Category::class);
     }
 
+    /**
+     * Relación Muchos a Muchos con Ingredientes.
+     * Recuerda que usamos ->withPivot('quantity', 'unit') si quieres esos datos.
+     */
     public function ingredients()
     {
-        return $this->belongsToMany(Ingredient::class);
+        return $this->belongsToMany(Ingredient::class)->withPivot('quantity', 'unit');
     }
 
     public function comments()
@@ -103,9 +123,8 @@ class Recipe extends Model
         return $this->hasMany(Rating::class);
     }
 
-    //Usuarios que han guardado esta receta como favorita
     public function favoritedBy()
     {
-        return $this->belongsToMany(User::class , 'favorites')->withTimestamps();
+        return $this->belongsToMany(User::class, 'favorites')->withTimestamps();
     }
 }
