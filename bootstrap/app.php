@@ -16,8 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
         ]);
 
-        // En lugar de append, usamos esto para habilitar el CORS nativo
         $middleware->statefulApi();
+
+        // Esta línea es la clave: fuerza el origen dinámicamente
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
