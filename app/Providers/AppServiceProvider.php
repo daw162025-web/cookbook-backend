@@ -19,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Borra el código de los headers que pusimos aquí.
+        if (config('app.env') === 'production') {
+            \URL::forceScheme('https');
+        }
     }
 }
