@@ -12,6 +12,13 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 
 // Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
+// Forzar limpieza de caché de configuración en cada carga (solo para debug)
+if (isset($_GET['clear_cache'])) {
+    exec('php ../artisan config:clear');
+    exec('php ../artisan cache:clear');
+    echo "Caché limpiada con éxito";
+    exit;
+}
 
 // Bootstrap Laravel and handle the request...
 /** @var Application $app */
