@@ -19,8 +19,6 @@ RUN composer install --optimize-autoloader --no-dev
 
 COPY docker/nginx.conf /etc/nginx/sites-available/default
 
-RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-
 EXPOSE 8080
 
-CMD service nginx start && php-fpm
+CMD bash -c "php-fpm -D && nginx -g 'daemon off;'"
