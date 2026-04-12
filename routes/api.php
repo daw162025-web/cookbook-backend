@@ -15,7 +15,6 @@ Route::get('/recipes', [RecipeController::class , 'index']);
 Route::get('/recipes/{id}', [RecipeController::class , 'show']);
 Route::get('/ingredients', [IngredientController::class , 'index']);
 Route::get('/ingredients/{id}', [IngredientController::class , 'show']);
-// En routes/api.php
 Route::get('/categories', [CategoryController::class , 'index']);
 Route::get('/categories/{category}/recipes', [RecipeController::class , 'getByCategory']);
 
