@@ -20,19 +20,17 @@ class CorsMiddleware
         if ($request->isMethod('OPTIONS')) {
             $response = response()->json('OK', 200);
             $response->headers->remove('Access-Control-Allow-Origin');
-            if (in_array($origin, $allowedOrigins)) {
-                $response->headers->set('Access-Control-Allow-Origin', $origin);
-            }
+            $response->headers->set('Access-Control-Allow-Origin', in_array($origin, $allowedOrigins) ? $origin : '');
             $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
             $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+            $response->headers->set('Vary', 'Origin'); // ← clave para CDN
             return $response;
         }
 
         $response = $next($request);
         $response->headers->remove('Access-Control-Allow-Origin');
-        if (in_array($origin, $allowedOrigins)) {
-            $response->headers->set('Access-Control-Allow-Origin', $origin);
-        }
+        $response->headers->set('Access-Control-Allow-Origin', in_array($origin, $allowedOrigins) ? $origin : '');
+        $response->headers->set('Vary', 'Origin'); // ← clave para CDN
         return $response;
     }
 }
