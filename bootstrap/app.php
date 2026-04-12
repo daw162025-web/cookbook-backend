@@ -12,15 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Esta línea es la clave: le decimos a Laravel que confíe en Vercel
+        $middleware->trustProxies(at: '*');
+
+        // Forzamos a que no compruebe el token en la API
         $middleware->validateCsrfTokens(except: [
             'api/*',
         ]);
-
-        $middleware->statefulApi();
-
-        // Esta línea es la clave: fuerza el origen dinámicamente
-        $middleware->trustProxies(at: '*');
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
