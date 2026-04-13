@@ -11,7 +11,6 @@ WORKDIR /var/www
 
 COPY . .
 
-# Crear directorios ANTES de composer install
 RUN mkdir -p bootstrap/cache storage/framework/sessions \
     storage/framework/views storage/framework/cache storage/logs \
     && chmod -R 777 bootstrap/cache storage
@@ -22,4 +21,8 @@ COPY docker/nginx.conf /etc/nginx/sites-available/default
 
 EXPOSE 8080
 
-CMD bash -c "php-fpm -D && nginx -g 'daemon off;'"
+# Script de inicio que mantiene el proceso vivo
+CMD bash -c "php artisan config:clear && \
+    php artisan migrate --force && \
+    php-fpm -D && \
+    nginx -g 'daemon off;'"
