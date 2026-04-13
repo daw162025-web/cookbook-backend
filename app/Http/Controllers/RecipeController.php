@@ -278,4 +278,29 @@ class RecipeController extends Controller
             ])
             ->get();
     }
+
+    public function toggleFavorite(Recipe $recipe)
+    {
+        $user = auth()->user();
+
+        // Verificamos si ya es favorito
+        $exists = $user->favoriteRecipes()->where('recipe_id', $recipe->id)->exists();
+
+        if ($exists) {
+            // Si ya existe, lo quitamos
+            $user->favoriteRecipes()->detach($recipe->id);
+            $status = false;
+            $message = 'Eliminado de favoritos';
+        } else {
+            // Si no existe, lo añadimos
+            $user->favoriteRecipes()->attach($recipe->id);
+            $status = true;
+            $message = 'Añadido a favoritos';
+        }
+
+        return response()->json([
+            'is_favorite' => $status,
+            'message' => $message
+        ]);
+    }
 }

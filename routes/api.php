@@ -30,4 +30,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // Usamos POST + _method: PUT para evitar errores de carga
     Route::post('/ingredients/{id}', [IngredientController::class , 'update']);
     Route::delete('/ingredients/{id}', [IngredientController::class , 'destroy']);
+    Route::post('recipes/{recipe}/favorite', [RecipeController::class, 'toggleFavorite']);
 });

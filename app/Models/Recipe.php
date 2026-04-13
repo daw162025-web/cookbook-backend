@@ -116,4 +116,12 @@ class Recipe extends Model
     {
         return $this->belongsToMany(User::class, 'favorites')->withTimestamps();
     }
+    protected $appends = ['is_favorite'];
+
+    public function getIsFavoriteAttribute()
+    {
+        $userId = auth('api')->id();
+        if (!$userId) return false;
+        return $this->favoritedBy()->where('user_id', $userId)->exists();
+    }
 }
