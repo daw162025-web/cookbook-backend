@@ -303,4 +303,13 @@ class RecipeController extends Controller
             'message' => $message
         ]);
     }
+
+    public function getFavorites()
+    {
+        $user = auth()->user();
+        // Cargamos las recetas favoritas del usuario con sus relaciones
+        $favorites = $user->favoriteRecipes()->with(['user', 'categories'])->get();
+
+        return response()->json($favorites);
+    }
 }
