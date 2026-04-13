@@ -282,15 +282,26 @@ class RecipeController extends Controller
     public function toggleFavorite($id)
     {
         $user = auth()->user();
-        
-        // toggle() devuelve un array con lo que se ha añadido ('attached') y quitado ('detached')
-        $changes = $user->favoriteRecipes()->toggle($id);
-        
-        $isFavorite = count($changes['attached']) > 0;
 
+        // 1. Buscamos si ya existe la relación en la tabla favoritos
+        $isFavorite = $user->favoriteRecipes()->where('recipe_id', $id)->exists();
+
+        if ($isFavorite) {
+            // 2. Si ya era favorito, lo quitamos
+            $user->favoriteRecipes()->detach($id);
+            $newStatus = false;
+            $message = 'Eliminado de favoritos';
+        } else {
+            // 3. Si no era favorito, lo añadimos
+            $user->favoriteRecipes()->attach($id);
+            $newStatus = true;
+            $message = 'Añadido a favoritos';
+        }
+
+        // 4. Devolvemos el estado REAL después del cambio
         return response()->json([
-            'is_favorite' => $isFavorite,
-            'message' => $isFavorite ? 'Añadido a favoritos' : 'Eliminado de favoritos'
+            'is_favorite' => $newStatus,
+            'message' => $message
         ]);
     }
 
