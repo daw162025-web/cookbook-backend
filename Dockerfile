@@ -22,7 +22,12 @@ COPY docker/nginx.conf /etc/nginx/sites-available/default
 EXPOSE 8080
 
 # Script de inicio que mantiene el proceso vivo
-CMD bash -c "php artisan config:clear && \
+CMD bash -c "set -e && \
+    echo '=== Clearing config ===' && \
+    php artisan config:clear && \
+    echo '=== Running migrations ===' && \
     php artisan migrate --force && \
+    echo '=== Starting PHP-FPM ===' && \
     php-fpm -D && \
+    echo '=== Starting Nginx ===' && \
     nginx -g 'daemon off;'"

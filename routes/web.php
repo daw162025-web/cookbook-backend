@@ -13,14 +13,4 @@ Route::get('/debug-cloudinary', function () {
     ];
 });
 
-Route::get('/ejecutar-seed', function () {
-    try {
-        Artisan::call('migrate:fresh', [
-            '--seed' => true,
-            '--force' => true,
-        ]);
-        return "¡Base de datos reseteada y cargada con éxito!";
-    } catch (\Exception $e) {
-        return "Error: " . $e->getMessage();
-    }
-});
+
