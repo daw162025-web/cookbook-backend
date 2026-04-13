@@ -122,8 +122,8 @@ class Recipe extends Model
 
     public function getIsFavoriteAttribute()
     {
-        // Si usas auth()->id() Laravel usará el guardián por defecto que esté activo
-        $userId = auth()->id();
+        // Usamos el guardián sanctum explícitamente para que funcione en rutas públicas si hay token
+        $userId = auth('sanctum')->id();
 
         if (!$userId) {
             return false;
