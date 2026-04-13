@@ -114,14 +114,21 @@ class Recipe extends Model
 
     public function favoritedBy()
     {
+        // Mantenemos esta relación igual
         return $this->belongsToMany(User::class, 'favorites')->withTimestamps();
     }
+
     protected $appends = ['is_favorite'];
 
     public function getIsFavoriteAttribute()
     {
-        $userId = auth('api')->id();
-        if (!$userId) return false;
+        // Si usas auth()->id() Laravel usará el guardián por defecto que esté activo
+        $userId = auth()->id();
+
+        if (!$userId) {
+            return false;
+        }
+
         return $this->favoritedBy()->where('user_id', $userId)->exists();
     }
 }
