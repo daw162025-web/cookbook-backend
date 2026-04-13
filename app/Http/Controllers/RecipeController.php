@@ -279,8 +279,9 @@ class RecipeController extends Controller
             ->get();
     }
 
-    public function toggleFavorite(Recipe $recipe)
+    public function toggleFavorite($id)
     {
+        $recipe = Recipe::findOrFail($id);
         $user = auth()->user();
 
         // Verificamos si ya es favorito

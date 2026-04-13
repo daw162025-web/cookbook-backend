@@ -122,13 +122,16 @@ class Recipe extends Model
 
     public function getIsFavoriteAttribute()
     {
-        // Usamos el guardián sanctum explícitamente para que funcione en rutas públicas si hay token
         $userId = auth('sanctum')->id();
 
         if (!$userId) {
             return false;
         }
 
-        return $this->favoritedBy()->where('user_id', $userId)->exists();
+        // Usamos una consulta directa a la tabla pivot para mayor rapidez y fiabilidad
+        return \Illuminate\Support\Facades\DB::table('favorites')
+            ->where('recipe_id', $this->id)
+            ->where('user_id', $userId)
+            ->exists();
     }
 }
