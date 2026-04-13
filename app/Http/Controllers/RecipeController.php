@@ -313,4 +313,31 @@ class RecipeController extends Controller
 
         return response()->json($favorites);
     }
+
+    public function rate(Request $request, $id)
+    {
+        $request->validate([
+            'score' => 'required|integer|min:1|max:5'
+        ]);
+
+        $user = auth()->user();
+
+        // updateOrCreate: si existe lo actualiza, si no lo crea
+        $rating = \App\Models\Rating::updateOrCreate(
+            ['user_id' => $user->id, 'recipe_id' => $id],
+            ['score' => $request->score]
+        );
+
+        // Opcional: Recalcular la media para devolverla al front
+        $recipe = Recipe::withCount([
+            'ratings as avg_rating' => function ($query) {
+                $query->select(DB::raw('coalesce(avg(score), 0)'));
+            }
+        ])->find($id);
+
+        return response()->json([
+            'message' => 'Valoración guardada',
+            'avg_rating' => number_format($recipe->avg_rating, 1)
+        ]);
+    }
 }
