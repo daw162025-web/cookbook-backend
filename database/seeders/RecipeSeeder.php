@@ -37,8 +37,7 @@ class RecipeSeeder extends Seeder
             'duration' => 45,
             'difficulty' => 'media', // Ya en español
             'status' => 'published',
-            'image_url' => json_encode(['https://res.cloudinary.com/demo/image/upload/v1/sample.jpg'])
-        ]);
+            'image_url' => 'https://res.cloudinary.com/dd48hro4d/image/upload/v1775468798/cookbook_recetas/g4zs02puskt3k6umf6kz.jpg',        ]);
 
         // 3. Asignar categorías (Muchos a Muchos)
         // Buscamos subcategorías específicas por nombre
@@ -67,8 +66,7 @@ class RecipeSeeder extends Seeder
             'duration' => 30,
             'difficulty' => 'facil',
             'status' => 'published',
-            'image_url' => json_encode(['https://res.cloudinary.com/demo/image/upload/v1/sample.jpg'])
-        ]);
+            'image_url' => 'https://res.cloudinary.com/dd48hro4d/image/upload/v1775468903/cookbook_recetas/lpbja9x7mmvkjb0fhecc.jpg',        ]);
 
         $catIds2 = Category::whereIn('name', ['Arroz', 'Carnes y aves'])->pluck('id');
         $recipe2->categories()->attach($catIds2);

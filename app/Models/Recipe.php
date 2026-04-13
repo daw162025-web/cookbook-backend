@@ -22,28 +22,17 @@ class Recipe extends Model
 
     protected $casts = [];
 
-//    public function getImageUrlAttribute($value)
-//    {
-//        if (!$value)
-//            return [];
-//
-//        $images = [];
-//        $trimmed = is_string($value) ? trim($value) : '';
-//
-//        if ($trimmed && str_starts_with($trimmed, '[')) {
-//            $decoded = json_decode($trimmed, true);
-//            $images = is_array($decoded) ? $decoded : [$value];
-//        } else {
-//            $images = is_array($value) ? $value : [$value];
-//        }
-//
-//        return array_values(array_filter(array_map(function ($url) {
-//            if (!is_string($url) || empty($url))
-//                return null;
-//            return $this->optimizeCloudinaryUrl($url);
-//        }, $images)));
-//    }
-//
+    // Esto limpia la URL antes de enviarla a Angular
+    public function getImageUrlAttribute($value)
+    {
+        if (is_string($value)) {
+            // Quitamos los corchetes y comillas extras si existen
+            $clean = trim($value, '[]"');
+            return stripslashes($clean);
+        }
+        return $value;
+    }
+
 //    public function setImageUrlAttribute($value)
 //    {
 //        $this->attributes['image_url'] = is_array($value) ? json_encode($value) : $value;
