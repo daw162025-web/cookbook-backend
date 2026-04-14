@@ -34,15 +34,13 @@ class RecipeController extends Controller
     public function show($id)
     {
         // Buscamos la receta, si no existe devuelve error
-        $recipe = Recipe::with(['user', 'categories', 'ingredients', 'comments.user'])
+        $recipe = Recipe::with(['user', 'categories', 'ingredients', 'comments' => function($query) {
+            $query->with('user')->latest(); // Trae el usuario del comentario y ordena por fecha
+        }])
             ->withCount('ratings')
             ->findOrFail($id);
 
-        if (!$recipe) {
-            return response()->json(['message' => 'Receta no encontrada'], 404);
-        }
-
-        // Buscamos si el usuario actual tiene una valoración para esta receta
+        // Buscamos si el usuario actual tiene una valoración
         $userRating = 0;
         if (auth('sanctum')->check()) {
             $rating = \App\Models\Rating::where('user_id', auth('sanctum')->id())
@@ -51,7 +49,7 @@ class RecipeController extends Controller
             $userRating = $rating ? $rating->score : 0;
         }
 
-        // Añadimos el campo al JSON de respuesta
+        // Añadimos el dato dinámico
         $recipe->user_rating = $userRating;
 
         return response()->json($recipe);
@@ -356,5 +354,22 @@ class RecipeController extends Controller
             'message' => 'Valoración guardada',
             'avg_rating' => number_format($recipe->avg_rating, 1)
         ]);
+    }
+
+    public function addComment(Request $request, $id)
+    {
+        $request->validate([
+            'content' => 'required|string|min:3'
+        ]);
+
+        $comment = \App\Models\Comment::create([
+            'user_id' => auth()->id(),
+            'recipe_id' => $id,
+            'content' => $request->content,
+            'is_moderated' => false // Por defecto sin moderar
+        ]);
+
+        // Devolvemos el comentario con los datos del usuario para Angular
+        return response()->json($comment->load('user'));
     }
 }
