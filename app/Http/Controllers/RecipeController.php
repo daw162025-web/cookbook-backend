@@ -35,7 +35,24 @@ class RecipeController extends Controller
     {
         // Buscamos la receta, si no existe devuelve error
         $recipe = Recipe::with(['user', 'categories', 'ingredients', 'comments.user'])
+            ->withCount('ratings')
             ->findOrFail($id);
+
+        if (!$recipe) {
+            return response()->json(['message' => 'Receta no encontrada'], 404);
+        }
+
+        // Buscamos si el usuario actual tiene una valoración para esta receta
+        $userRating = 0;
+        if (auth('sanctum')->check()) {
+            $rating = \App\Models\Rating::where('user_id', auth('sanctum')->id())
+                ->where('recipe_id', $id)
+                ->first();
+            $userRating = $rating ? $rating->score : 0;
+        }
+
+        // Añadimos el campo al JSON de respuesta
+        $recipe->user_rating = $userRating;
 
         return response()->json($recipe);
     }

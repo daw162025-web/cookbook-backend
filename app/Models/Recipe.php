@@ -113,7 +113,7 @@ class Recipe extends Model
     }
 
     // Esto hace que 'avg_rating' aparezca siempre en el JSON
-    protected $appends = ['is_favorite', 'avg_rating'];
+    protected $appends = ['is_favorite', 'avg_rating', 'user_rating'];
 
     public function getAvgRatingAttribute()
     {
@@ -121,6 +121,20 @@ class Recipe extends Model
         return (float) ($this->ratings()->avg('score') ?? 0);
     }
 
+    public function getUserRatingAttribute()
+    {
+        // Si el usuario no está logueado, la nota es 0
+        if (!auth('sanctum')->check()) {
+            return 0;
+        }
+
+        // Buscamos la nota en la tabla de ratings
+        $rating = \App\Models\Rating::where('user_id', auth('sanctum')->id())
+            ->where('recipe_id', $this->id)
+            ->first();
+
+        return $rating ? $rating->score : 0;
+    }
     public function favoritedBy()
     {
         // Mantenemos esta relación igual
