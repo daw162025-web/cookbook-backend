@@ -112,13 +112,20 @@ class Recipe extends Model
         return $this->hasMany(Rating::class);
     }
 
+    // Esto hace que 'avg_rating' aparezca siempre en el JSON
+    protected $appends = ['is_favorite', 'avg_rating'];
+
+    public function getAvgRatingAttribute()
+    {
+        // Retorna la media de la relación ratings, si no hay votos devuelve 0
+        return (float) ($this->ratings()->avg('score') ?? 0);
+    }
+
     public function favoritedBy()
     {
         // Mantenemos esta relación igual
         return $this->belongsToMany(User::class, 'favorites')->withTimestamps();
     }
-
-    protected $appends = ['is_favorite'];
 
     public function getIsFavoriteAttribute()
     {
