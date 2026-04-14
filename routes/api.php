@@ -33,4 +33,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/recipes/{id}/favorite', [RecipeController::class, 'toggleFavorite']);
     Route::get('/favorites', [RecipeController::class, 'getFavorites']);
     Route::post('/recipes/{id}/rate', [RecipeController::class, 'rate']);
+    Route::post('/recipes/{id}/comments', [RecipeController::class, 'addComment']);
 });
