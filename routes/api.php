@@ -32,4 +32,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/ingredients/{id}', [IngredientController::class , 'destroy']);
     Route::post('/recipes/{id}/favorite', [RecipeController::class, 'toggleFavorite']);
     Route::get('/favorites', [RecipeController::class, 'getFavorites']);
+    Route::post('/recipes/{id}/rate', [RecipeController::class, 'rate']);
 });
