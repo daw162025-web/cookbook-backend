@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\AdminController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,4 +35,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/favorites', [RecipeController::class, 'getFavorites']);
     Route::post('/recipes/{id}/rate', [RecipeController::class, 'rate']);
     Route::post('/recipes/{id}/comments', [RecipeController::class, 'addComment']);
+});
+//Panel de admin
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/stats', [AdminController::class, 'getDashboardStats']);
+    Route::get('/users', [AdminController::class, 'getAllUsers']);
+
 });
