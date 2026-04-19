@@ -55,6 +55,48 @@ class AdminController extends Controller
     }
 
     /**
+     * Actualizar datos completos del usuario
+     */
+    public function updateUser(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'role'  => 'required|in:user,admin',
+        ]);
+
+        $user->update([
+            'name'  => $request->name,
+            'email' => $request->email,
+            'role'  => $request->role,
+        ]);
+
+        return response()->json([
+            'message' => 'Usuario actualizado con éxito',
+            'user'    => $user
+        ]);
+    }
+
+    /**
+     * Eliminar usuario
+     */
+    public function destroyUser($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Seguridad: No permitir que el admin se borre a sí mismo
+        if (auth()->id() == $user->id) {
+            return response()->json(['message' => 'No puedes eliminar tu propia cuenta administrativa'], 403);
+        }
+
+        $user->delete();
+
+        return response()->json(['message' => 'Usuario eliminado correctamente']);
+    }
+
+    /**
      * Moderación de Comentarios
      */
     public function getPendingComments()
@@ -84,4 +126,6 @@ class AdminController extends Controller
 
         return response()->json(['message' => 'Comentario eliminado por el administrador']);
     }
+
+
 }
