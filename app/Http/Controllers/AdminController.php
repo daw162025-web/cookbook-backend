@@ -38,28 +38,10 @@ class AdminController extends Controller
         return response()->json(User::latest()->get());
     }
 
-    public function updateUserRole(Request $request, $id)
-    {
-        $request->validate([
-            'role' => 'required|string|in:user,admin' // Solo permitimos estos dos roles
-        ]);
-
-        $user = User::findOrFail($id);
-        $user->role = $request->role;
-        $user->save();
-
-        return response()->json([
-            'message' => 'Rol de usuario actualizado correctamente',
-            'user' => $user
-        ]);
-    }
-
-    /**
-     * Actualizar datos completos del usuario
-     */
     public function updateUser(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $adminActual = auth()->user(); // Obtenemos el admin que está operando
 
         $request->validate([
             'name'  => 'required|string|max:255',
@@ -67,16 +49,16 @@ class AdminController extends Controller
             'role'  => 'required|in:user,admin',
         ]);
 
-        $user->update([
-            'name'  => $request->name,
-            'email' => $request->email,
-            'role'  => $request->role,
-        ]);
+        // SEGURIDAD: Si intentas editarte a ti mismo y cambiar el rol a 'user'
+        if ($adminActual->id == $user->id && $request->role !== 'admin') {
+            return response()->json([
+                'message' => 'No puedes quitarte los permisos de administrador a ti mismo.'
+            ], 403);
+        }
 
-        return response()->json([
-            'message' => 'Usuario actualizado con éxito',
-            'user'    => $user
-        ]);
+        $user->update($request->only('name', 'email', 'role'));
+
+        return response()->json(['message' => 'Usuario actualizado', 'user' => $user]);
     }
 
     /**
