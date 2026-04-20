@@ -134,30 +134,25 @@ class AdminController extends Controller
     {
         $recipe = Recipe::findOrFail($id);
 
-        // 1. Actualizar datos básicos
-        $recipe->update($request->only(['title', 'description', 'difficulty', 'duration']));
+        // Si viene una imagen nueva
+        if ($request->hasFile('image')) {
+            // Aquí usas tu lógica de Cloudinary que ya tienes en el CreateRecipe
+            $uploadedFileUrl = $request->file('image')->storeOnCloudinary('recipes')->getSecurePath();
+            $recipe->image_url = $uploadedFileUrl;
+        }
 
-        // 2. Sincronizar Categorías (Borra las viejas y pone las nuevas)
+        $recipe->title = $request->title;
+        $recipe->description = $request->description;
+        $recipe->difficulty = $request->difficulty;
+        $recipe->save();
+
+        // Sincronizar categorías (decodificando el JSON que envía FormData)
         if ($request->has('category_ids')) {
-            $recipe->categories()->sync($request->category_ids);
+            $ids = json_decode($request->category_ids);
+            $recipe->categories()->sync($ids);
         }
 
-        // 3. Sincronizar Ingredientes
-        // Aquí la lógica es más compleja si los ingredientes son nuevos,
-        // pero para edición básica de cantidades:
-        if ($request->has('ingredients')) {
-            $ingredientsData = [];
-            foreach ($request->ingredients as $ing) {
-                // Nota: Aquí asumo que el ingrediente ya existe por nombre o ID
-                $ingredientsData[$ing['id']] = [
-                    'quantity' => $ing['pivot']['quantity'],
-                    'unit' => $ing['pivot']['unit']
-                ];
-            }
-            $recipe->ingredients()->sync($ingredientsData);
-        }
-
-        return response()->json(['message' => 'Receta actualizada completa', 'recipe' => $recipe->load('categories', 'user', 'ingredients')]);
+        return response()->json(['message' => 'Receta e imagen actualizadas']);
     }
 
     public function getAllCategories() {
