@@ -141,8 +141,9 @@ class Recipe extends Model
 
     public function getAvgRatingAttribute()
     {
-        // Retorna la media de la relación ratings, si no hay votos devuelve 0
-        return (float) ($this->ratings()->avg('score') ?? 0);
+        // Retorna la media de la relación ratings redondeada a 2 decimales
+        $avg = $this->ratings()->avg('score') ?? 0;
+        return round((float) $avg, 2);
     }
 
     public function getUserRatingAttribute()
