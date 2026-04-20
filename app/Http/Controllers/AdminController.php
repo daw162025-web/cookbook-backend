@@ -111,5 +111,46 @@ class AdminController extends Controller
         return response()->json(['message' => 'Comentario eliminado por el administrador']);
     }
 
+    public function getAllRecipes()
+    {
+        // Cargamos con el usuario y la categoría, y contamos comentarios
+        $recipes = Recipe::with(['user', 'category'])
+            ->withCount('comments')
+            ->latest()
+            ->get();
 
+        return response()->json($recipes);
+    }
+
+    public function destroyRecipe($id)
+    {
+        $recipe = Recipe::findOrFail($id);
+        // Opcional: Borrar la imagen de storage si la tienes
+        $recipe->delete();
+
+        return response()->json(['message' => 'Receta eliminada']);
+    }
+
+    public function updateRecipe(Request $request, $id)
+    {
+        $recipe = Recipe::findOrFail($id);
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'category_id' => 'required|exists:categories,id',
+        ]);
+
+        $recipe->update([
+            'title' => $request->title,
+            'description' => $request->description,
+            'category_id' => $request->category_id,
+        ]);
+
+        return response()->json(['message' => 'Receta actualizada', 'recipe' => $recipe->load('category', 'user')]);
+    }
+
+    public function getAllCategories() {
+        return response()->json(\App\Models\Category::all());
+    }
 }

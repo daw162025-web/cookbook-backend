@@ -42,4 +42,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/users', [AdminController::class, 'getAllUsers']);
     Route::put('/users/{id}', [AdminController::class, 'updateUser']);
     Route::delete('/users/{id}', [AdminController::class, 'destroyUser']);
+    Route::get('/recipes', [AdminController::class, 'getAllRecipes']);
+    Route::put('/recipes/{id}', [AdminController::class, 'updateRecipe']);
+    Route::delete('/recipes/{id}', [AdminController::class, 'destroyRecipe']);
+    Route::get('/categories', [AdminController::class, 'getAllCategories']);
 });
