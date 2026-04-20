@@ -131,12 +131,29 @@ class AdminController extends Controller
         return Comment::with(['user', 'recipe:id,title'])->latest()->get();
     }
 
-    public function updateComment(Request $request, $id) {
-        $comment = Comment::findOrFail($id);
-        $comment->content = $request->content;
-        $comment->is_moderated = $request->is_moderated;
-        $comment->save();
-        return response()->json(['message' => 'Comentario actualizado']);
+    public function updateComment(Request $request, $id)
+    {
+        try {
+            $comment = Comment::findOrFail($id);
+
+            // Validamos que los datos lleguen (is_moderated puede ser 0 o 1)
+            $comment->is_moderated = $request->input('is_moderated');
+
+            // Solo actualizamos el contenido si viene en la petición
+            if ($request->has('content')) {
+                $comment->content = $request->input('content');
+            }
+
+            $comment->save();
+
+            return response()->json([
+                'message' => 'Comentario actualizado con éxito',
+                'comment' => $comment
+            ]);
+        } catch (\Exception $e) {
+            // Esto enviará el error real a la consola de Angular para que lo veas
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function getAllRecipes()
