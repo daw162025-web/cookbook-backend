@@ -134,12 +134,18 @@ class AdminController extends Controller
     {
         $recipe = Recipe::findOrFail($id);
 
-        // Si viene una imagen nueva
-        if ($request->hasFile('image')) {
-            // Aquí usas tu lógica de Cloudinary que ya tienes en el CreateRecipe
-            $uploadedFileUrl = $request->file('image')->storeOnCloudinary('recipes')->getSecurePath();
-            $recipe->image_url = $uploadedFileUrl;
+        $currentImages = json_decode($request->existing_images, true) ?? [];
+
+        // Procesar imágenes nuevas
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $url = $file->storeOnCloudinary('recipes')->getSecurePath();
+                $currentImages[] = $url;
+            }
         }
+
+        // Guardamos todas las URLs como un JSON o en tu tabla de imágenes
+        $recipe->image_url = $currentImages;
 
         $recipe->title = $request->title;
         $recipe->description = $request->description;
