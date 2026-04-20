@@ -40,6 +40,6 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('/stats', [AdminController::class, 'getDashboardStats']);
     Route::get('/users', [AdminController::class, 'getAllUsers']);
-    Route::put('/users/{id}', [AdminController::class, 'updateUser']);
+    Route::post('/users/{id}', [AdminController::class, 'updateUser']);
     Route::delete('/users/{id}', [AdminController::class, 'destroyUser']);
 });

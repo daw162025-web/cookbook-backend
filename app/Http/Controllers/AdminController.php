@@ -43,26 +43,24 @@ class AdminController extends Controller
         $user = User::findOrFail($id);
 
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email,' . $user->id,
-            'role'     => 'required|in:user,admin',
-            'password' => 'nullable|string|min:8', // 'nullable' permite que sea opcional
+            'name'  => 'required|string',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'role'  => 'required|in:user,admin',
+            'password' => 'nullable|min:8'
         ]);
 
-        $data = [
-            'name'  => $request->name,
-            'email' => $request->email,
-            'role'  => $request->role,
-        ];
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->role = $request->role;
 
-        // Solo encriptamos y añadimos la contraseña si el admin escribió algo
-        if ($request->filled('password')) {
-            $data['password'] = bcrypt($request->password);
+        // Log para depuración (puedes verlo en los logs de Railway)
+        if ($request->has('password') && !empty($request->password)) {
+            $user->password = bcrypt($request->password);
         }
 
-        $user->update($data);
+        $user->save(); // Usar save() es más seguro que update() en algunos casos
 
-        return response()->json(['message' => 'Usuario actualizado correctamente']);
+        return response()->json(['message' => 'Actualizado', 'user' => $user]);
     }
 
     /**
