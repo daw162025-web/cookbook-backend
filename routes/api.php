@@ -24,7 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class , 'logout']);
     // CRUD de Recetas protegido
     Route::get('/my-recipes', [RecipeController::class , 'myRecipes']);
-    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::post('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/recipes', [RecipeController::class , 'store']);
     Route::post('/recipes/{id}', [RecipeController::class , 'update']); // Usamos POST para que funcione bien form-data
     Route::delete('/recipes/{id}', [RecipeController::class , 'destroy']);

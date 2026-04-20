@@ -87,10 +87,24 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $user->name = $validatedData['name'];
         $user->email = $validatedData['email'];
+
+        // Manejo de la foto de perfil (Cloudinary)
+        if ($request->hasFile('avatar')) {
+            try {
+                $cloudinary = new \Cloudinary\Cloudinary(env('CLOUDINARY_URL'));
+                $uploadResult = $cloudinary->uploadApi()->upload($request->file('avatar')->getRealPath(), [
+                    'folder' => 'cookbook_profiles'
+                ]);
+                $user->profile_image_url = $uploadResult['secure_url'];
+            } catch (\Exception $e) {
+                // Loguear error o manejarlo
+            }
+        }
 
         if ($request->filled('password')) {
             $user->password = Hash::make($validatedData['password']);
