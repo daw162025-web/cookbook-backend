@@ -20,7 +20,10 @@ class Recipe extends Model
         'image_url'
     ];
 
-    protected $casts = [];
+    protected $casts = [
+        'image_url' => 'array',
+        'instructions' => 'array',
+    ];
 
     // Esto limpia la URL antes de enviarla a Angular
     public function getImageUrlAttribute($value)
