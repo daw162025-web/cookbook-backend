@@ -18,10 +18,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Crear algunos usuarios para tener variedad en las valoraciones
+        User::factory(10)->create();
+
         $this->call([
             CategorySeeder::class,
             IngredientSeeder::class,
-            RecipeSeeder::class, // Debe ir el último porque necesita IDs de los otros
+            RecipeSeeder::class,
+            RatingSeeder::class,
         ]);
     }
 }
