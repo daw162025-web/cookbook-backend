@@ -113,7 +113,7 @@ class AdminController extends Controller
 
     public function getAllRecipes()
     {
-        $recipes = Recipe::with(['user', 'categories'])
+        $recipes = Recipe::with(['user', 'categories', 'ingredients'])
             ->withCount('comments')
             ->latest()
             ->get();
