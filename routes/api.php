@@ -50,4 +50,6 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // Usa {id} exactamente igual que en usuarios
     Route::post('/comments/{id}/approve', [AdminController::class, 'approveComment']);
     Route::delete('/comments/{id}', [AdminController::class, 'deleteComment']);
+    Route::get('/comments/all', [AdminController::class, 'getAllComments']);
+    Route::put('/comments/{id}', [AdminController::class, 'updateComment']);
 });

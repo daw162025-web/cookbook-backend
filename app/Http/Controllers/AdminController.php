@@ -127,6 +127,18 @@ class AdminController extends Controller
         return response()->json(['message' => 'Comentario eliminado correctamente']);
     }
 
+    public function getAllComments() {
+        return Comment::with(['user', 'recipe:id,title'])->latest()->get();
+    }
+
+    public function updateComment(Request $request, $id) {
+        $comment = Comment::findOrFail($id);
+        $comment->content = $request->content;
+        $comment->is_moderated = $request->is_moderated;
+        $comment->save();
+        return response()->json(['message' => 'Comentario actualizado']);
+    }
+
     public function getAllRecipes()
     {
         $recipes = Recipe::with(['user', 'categories', 'ingredients'])
