@@ -28,12 +28,18 @@ class Recipe extends Model
     // Esto limpia la URL antes de enviarla a Angular
     public function getImageUrlAttribute($value)
     {
-        if (is_string($value)) {
-            // Quitamos los corchetes y comillas extras si existen
-            $clean = trim($value, '[]"');
-            return stripslashes($clean);
+        if (empty($value)) return [];
+
+        // Si ya es un array (por el cast), lo devolvemos
+        if (is_array($value)) return $value;
+
+        // Si es un string que parece un JSON (ej: ["url1","url2"])
+        if (is_string($value) && str_starts_with($value, '[')) {
+            return json_decode($value, true) ?: [];
         }
-        return $value;
+
+        // Si es un string simple, lo metemos en un array
+        return [$value];
     }
 
 //    public function setImageUrlAttribute($value)
