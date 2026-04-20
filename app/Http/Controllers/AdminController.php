@@ -89,6 +89,7 @@ class AdminController extends Controller
             // Buscamos los que NO han sido moderados (is_moderated = false)
             return Comment::with(['user', 'recipe:id,title'])
                 ->where('is_moderated', false)
+                ->whereColumn('created_at', 'updated_at') // Filtro mágico
                 ->latest()
                 ->get();
         } catch (\Exception $e) {
@@ -154,6 +155,13 @@ class AdminController extends Controller
             // Esto enviará el error real a la consola de Angular para que lo veas
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function rejectComment($id) {
+        $comment = Comment::findOrFail($id);
+        $comment->is_moderated = 2; // 2 significa Rechazado
+        $comment->save();
+        return response()->json(['message' => 'Rechazado']);
     }
 
     public function getAllRecipes()
