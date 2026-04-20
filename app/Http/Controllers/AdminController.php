@@ -41,24 +41,28 @@ class AdminController extends Controller
     public function updateUser(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        $adminActual = auth()->user(); // Obtenemos el admin que está operando
 
         $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'role'  => 'required|in:user,admin',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email,' . $user->id,
+            'role'     => 'required|in:user,admin',
+            'password' => 'nullable|string|min:8', // 'nullable' permite que sea opcional
         ]);
 
-        // SEGURIDAD: Si intentas editarte a ti mismo y cambiar el rol a 'user'
-        if ($adminActual->id == $user->id && $request->role !== 'admin') {
-            return response()->json([
-                'message' => 'No puedes quitarte los permisos de administrador a ti mismo.'
-            ], 403);
+        $data = [
+            'name'  => $request->name,
+            'email' => $request->email,
+            'role'  => $request->role,
+        ];
+
+        // Solo encriptamos y añadimos la contraseña si el admin escribió algo
+        if ($request->filled('password')) {
+            $data['password'] = bcrypt($request->password);
         }
 
-        $user->update($request->only('name', 'email', 'role'));
+        $user->update($data);
 
-        return response()->json(['message' => 'Usuario actualizado', 'user' => $user]);
+        return response()->json(['message' => 'Usuario actualizado correctamente']);
     }
 
     /**
