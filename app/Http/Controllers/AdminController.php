@@ -226,6 +226,11 @@ class AdminController extends Controller
             'recipe' => $recipe->load('categories', 'ingredients')
         ]);
     }
+    public function getAllRecipes()
+    {
+        return Recipe::with(['user', 'categories', 'ingredients'])->withCount('comments')->latest()->get();
+    }
+
     public function getAllCategories() {
         return response()->json(\App\Models\Category::all());
     }
