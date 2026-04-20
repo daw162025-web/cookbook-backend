@@ -134,19 +134,30 @@ class AdminController extends Controller
     {
         $recipe = Recipe::findOrFail($id);
 
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'category_id' => 'required|exists:categories,id',
-        ]);
+        // 1. Actualizar datos básicos
+        $recipe->update($request->only(['title', 'description', 'difficulty', 'duration']));
 
-        $recipe->update([
-            'title' => $request->title,
-            'description' => $request->description,
-            'category_id' => $request->category_id,
-        ]);
+        // 2. Sincronizar Categorías (Borra las viejas y pone las nuevas)
+        if ($request->has('category_ids')) {
+            $recipe->categories()->sync($request->category_ids);
+        }
 
-        return response()->json(['message' => 'Receta actualizada', 'recipe' => $recipe->load('category', 'user')]);
+        // 3. Sincronizar Ingredientes
+        // Aquí la lógica es más compleja si los ingredientes son nuevos,
+        // pero para edición básica de cantidades:
+        if ($request->has('ingredients')) {
+            $ingredientsData = [];
+            foreach ($request->ingredients as $ing) {
+                // Nota: Aquí asumo que el ingrediente ya existe por nombre o ID
+                $ingredientsData[$ing['id']] = [
+                    'quantity' => $ing['pivot']['quantity'],
+                    'unit' => $ing['pivot']['unit']
+                ];
+            }
+            $recipe->ingredients()->sync($ingredientsData);
+        }
+
+        return response()->json(['message' => 'Receta actualizada completa', 'recipe' => $recipe->load('categories', 'user', 'ingredients')]);
     }
 
     public function getAllCategories() {
