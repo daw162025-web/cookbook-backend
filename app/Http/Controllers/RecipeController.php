@@ -33,9 +33,12 @@ class RecipeController extends Controller
 
     public function show($id)
     {
-        // Buscamos la receta, si no existe devuelve error
+        // Buscamos la receta con sus relaciones
         $recipe = Recipe::with(['user', 'categories', 'ingredients', 'comments' => function($query) {
-            $query->with('user')->latest(); // Trae el usuario del comentario y ordena por fecha
+            // FILTRO CRÍTICO: Solo comentarios aprobados por el admin
+            $query->where('is_moderated', 1)
+                ->with('user')
+                ->latest();
         }])
             ->withCount('ratings')
             ->findOrFail($id);
@@ -49,7 +52,6 @@ class RecipeController extends Controller
             $userRating = $rating ? $rating->score : 0;
         }
 
-        // Añadimos el dato dinámico
         $recipe->user_rating = $userRating;
 
         return response()->json($recipe);
