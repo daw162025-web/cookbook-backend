@@ -78,4 +78,29 @@ class AuthController extends Controller
             'message' => 'Sesión cerrada correctamente'
         ]);
     }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:8',
+        ]);
+
+        $user->name = $validatedData['name'];
+        $user->email = $validatedData['email'];
+
+        if ($request->filled('password')) {
+            $user->password = Hash::make($validatedData['password']);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Perfil actualizado correctamente',
+            'user' => $user
+        ]);
+    }
 }
