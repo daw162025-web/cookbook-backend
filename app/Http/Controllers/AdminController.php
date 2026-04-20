@@ -97,19 +97,34 @@ class AdminController extends Controller
         }
     }
 
-    public function approveComment($id)
+    // app/Http/Controllers/AdminController.php
+
+    public function approveComment(Request $request, $id) // Agregamos Request aunque no se use
     {
-        $comment = Comment::findOrFail($id);
-        $comment->update(['is_moderated' => true]);
-        return response()->json(['message' => 'Comentario aprobado']);
+        // Usamos find() y una respuesta manual para evitar el 404 automático de findOrFail
+        $comment = Comment::find($id);
+
+        if (!$comment) {
+            return response()->json(['message' => 'Comentario no encontrado en la base de datos'], 404);
+        }
+
+        $comment->is_moderated = true;
+        $comment->save();
+
+        return response()->json(['message' => 'Comentario aprobado correctamente']);
     }
 
-    public function deleteComment($id)
+    public function deleteComment(Request $request, $id)
     {
-        $comment = Comment::findOrFail($id);
+        $comment = Comment::find($id);
+
+        if (!$comment) {
+            return response()->json(['message' => 'El comentario ya no existe'], 404);
+        }
+
         $comment->delete();
 
-        return response()->json(['message' => 'Comentario eliminado por el administrador']);
+        return response()->json(['message' => 'Comentario eliminado correctamente']);
     }
 
     public function getAllRecipes()

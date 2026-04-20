@@ -47,6 +47,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::delete('/recipes/{id}', [AdminController::class, 'destroyRecipe']);
     Route::get('/categories', [AdminController::class, 'getAllCategories']);
     Route::get('/comments/pending', [AdminController::class, 'getPendingComments']);
+    // Usa {id} exactamente igual que en usuarios
     Route::post('/comments/{id}/approve', [AdminController::class, 'approveComment']);
     Route::delete('/comments/{id}', [AdminController::class, 'deleteComment']);
 });
