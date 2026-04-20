@@ -21,8 +21,8 @@ class Recipe extends Model
     ];
 
     protected $casts = [
-        'image_url' => 'array',
-        'instructions' => 'array',
+        // 'image_url' => 'array', // Gestionado por el accesor Attribute
+        // 'instructions' => 'array', // Gestionado por el accesor Attribute
     ];
 
     /**
@@ -49,9 +49,10 @@ class Recipe extends Model
                 return [$value];
             },
             set: function ($value) {
-                // Laravel se encargará del json_encode gracias al $casts['array']
-                // Solo nos aseguramos de que sea un array antes de guardarlo
-                return is_array($value) ? $value : [$value];
+                // Para evitar el error de mapeo de columnas numéricas (0, 1, 2...)
+                // devolvemos un array con el nombre de la columna explícito.
+                $array = is_array($value) ? $value : [$value];
+                return ['image_url' => json_encode($array)];
             }
         );
     }
@@ -96,8 +97,8 @@ class Recipe extends Model
                 return [$value];
             },
             set: function ($value) {
-                // No llamamos a json_encode aquí porque el $casts ya lo hace automáticamente
-                return $value;
+                // Devolvemos el nombre de la columna para evitar el error 'Column 0'
+                return ['instructions' => json_encode($value)];
             }
         );
     }
