@@ -134,33 +134,65 @@ class AdminController extends Controller
     {
         $recipe = Recipe::findOrFail($id);
 
-        $currentImages = json_decode($request->existing_images, true) ?? [];
+        // 1. Manejo de Imágenes
+        // Si envías FormData desde Angular, existing_images llega como String JSON
+        $currentImages = is_string($request->existing_images)
+            ? json_decode($request->existing_images, true)
+            : ($request->existing_images ?? []);
 
-        // Procesar imágenes nuevas
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $file) {
                 $url = $file->storeOnCloudinary('recipes')->getSecurePath();
                 $currentImages[] = $url;
             }
         }
-
-        // Guardamos todas las URLs como un JSON o en tu tabla de imágenes
         $recipe->image_url = $currentImages;
 
+        // 2. Datos básicos
         $recipe->title = $request->title;
         $recipe->description = $request->description;
-        $recipe->difficulty = $request->difficulty;
-        $recipe->save();
+        $recipe->difficulty = $request->difficulty; // Aquí llegará 'facil', 'media', etc.
 
-        // Sincronizar categorías (decodificando el JSON que envía FormData)
-        if ($request->has('category_ids')) {
-            $ids = json_decode($request->category_ids);
-            $recipe->categories()->sync($ids);
+        // 3. Manejo de Instrucciones (Si las editas como array en Angular)
+        if ($request->has('instructions')) {
+            $recipe->instructions = is_string($request->instructions)
+                ? json_decode($request->instructions, true)
+                : $request->instructions;
         }
 
-        return response()->json(['message' => 'Receta e imagen actualizadas']);
-    }
+        $recipe->save();
 
+        // 4. Sincronizar Categorías
+        if ($request->has('category_ids')) {
+            $categoryIds = is_string($request->category_ids)
+                ? json_decode($request->category_ids, true)
+                : $request->category_ids;
+            $recipe->categories()->sync($categoryIds);
+        }
+
+        // 5. Sincronizar Ingredientes (¡Esto suele ser lo que da el 500!)
+        if ($request->has('ingredients')) {
+            $ingredientsData = is_string($request->ingredients)
+                ? json_decode($request->ingredients, true)
+                : $request->ingredients;
+
+            $syncData = [];
+            foreach ($ingredientsData as $ing) {
+                if (isset($ing['id'])) {
+                    $syncData[$ing['id']] = [
+                        'quantity' => $ing['pivot']['quantity'] ?? '',
+                        'unit' => $ing['pivot']['unit'] ?? ''
+                    ];
+                }
+            }
+            $recipe->ingredients()->sync($syncData);
+        }
+
+        return response()->json([
+            'message' => 'Receta actualizada con éxito',
+            'recipe' => $recipe->load('categories', 'ingredients')
+        ]);
+    }
     public function getAllCategories() {
         return response()->json(\App\Models\Category::all());
     }
