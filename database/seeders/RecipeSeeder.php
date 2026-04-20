@@ -442,11 +442,11 @@ class RecipeSeeder extends Seeder
                 [
                     'user_id' => $user->id,
                     'description' => $data['description'],
-                    'instructions' => json_encode($data['instructions']),
+                    'instructions' => $data['instructions'],
                     'duration' => $data['duration'],
                     'difficulty' => $data['difficulty'],
                     'status' => 'published',
-                    'image_url' => $data['image_url']
+                    'image_url' => [$data['image_url']]
                 ]
             );
 

@@ -25,30 +25,36 @@ class Recipe extends Model
         'instructions' => 'array',
     ];
 
-    // Esto limpia la URL antes de enviarla a Angular
-    public function getImageUrlAttribute($value)
+    /**
+     * Accesor para image_url: Asegura que siempre sea un array de URLs limpias.
+     */
+    protected function imageUrl(): Attribute
     {
-        if (empty($value)) return [];
+        return Attribute::make(
+            get: function ($value) {
+                if (empty($value)) return [];
 
-        // Si ya es un array (por el cast), lo devolvemos tal cual
-        if (is_array($value)) {
-            return array_values(array_filter($value)); // Limpia nulos y resetea índices
-        }
+                // Si ya es un array (porque Laravel lo decodificó), lo limpiamos
+                if (is_array($value)) {
+                    return array_values(array_filter($value));
+                }
 
-        // Si es un string que parece un JSON ["url","url"]
-        if (is_string($value) && str_starts_with($value, '[')) {
-            $decoded = json_decode($value, true);
-            return is_array($decoded) ? array_values($decoded) : [];
-        }
+                // Caso especial: si es un string JSON que no fue decodificado
+                if (is_string($value) && str_starts_with($value, '[')) {
+                    $decoded = json_decode($value, true);
+                    return is_array($decoded) ? array_values($decoded) : [];
+                }
 
-        // Si es un string simple de una sola URL
-        return [$value];
+                // Si es un string simple, lo envolvemos en un array
+                return [$value];
+            },
+            set: function ($value) {
+                // Laravel se encargará del json_encode gracias al $casts['array']
+                // Solo nos aseguramos de que sea un array antes de guardarlo
+                return is_array($value) ? $value : [$value];
+            }
+        );
     }
-
-//    public function setImageUrlAttribute($value)
-//    {
-//        $this->attributes['image_url'] = is_array($value) ? json_encode($value) : $value;
-//    }
 
     /**
      * Optimiza la URL de Cloudinary
@@ -76,17 +82,22 @@ class Recipe extends Model
     {
         return Attribute::make(
             get: function ($value) {
-                if (empty($value))
-                    return [];
-                if ($value[0] === '[') {
+                if (empty($value)) return [];
+                
+                // Si ya es array (por el cast), lo devolvemos
+                if (is_array($value)) return $value;
+
+                // Si es string JSON
+                if (is_string($value) && str_starts_with($value, '[')) {
                     $decoded = json_decode($value, true);
-                    if (is_array($decoded))
-                        return $decoded;
+                    return is_array($decoded) ? $decoded : [$value];
                 }
+
                 return [$value];
             },
             set: function ($value) {
-                return is_array($value) ? json_encode($value) : $value;
+                // No llamamos a json_encode aquí porque el $casts ya lo hace automáticamente
+                return $value;
             }
         );
     }
