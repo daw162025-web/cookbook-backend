@@ -83,18 +83,24 @@ class AdminController extends Controller
     /**
      * Moderación de Comentarios
      */
-    public function getPendingComments() {
-        return Comment::with(['user', 'recipe:id,title']) // Solo traemos ID y título de la receta
-        ->where('status', 'pending')
-            ->get();
+    public function getPendingComments()
+    {
+        try {
+            // Buscamos los que NO han sido moderados (is_moderated = false)
+            return Comment::with(['user', 'recipe:id,title'])
+                ->where('is_moderated', false)
+                ->latest()
+                ->get();
+        } catch (\Exception $e) {
+            // Esto te dirá el error exacto en la respuesta si algo falla
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function approveComment($id)
     {
         $comment = Comment::findOrFail($id);
-        $comment->is_moderated = true;
-        $comment->save();
-
+        $comment->update(['is_moderated' => true]);
         return response()->json(['message' => 'Comentario aprobado']);
     }
 
