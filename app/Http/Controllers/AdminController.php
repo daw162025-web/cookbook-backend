@@ -80,25 +80,6 @@ class AdminController extends Controller
         return response()->json(['message' => 'Usuario eliminado correctamente']);
     }
 
-    /**
-     * Moderación de Comentarios
-     */
-    public function getPendingComments()
-    {
-        try {
-            // Buscamos los que NO han sido moderados (is_moderated = false)
-            return Comment::with(['user', 'recipe:id,title'])
-                ->where('is_moderated', false)
-                ->whereColumn('created_at', 'updated_at') // Filtro mágico
-                ->latest()
-                ->get();
-        } catch (\Exception $e) {
-            // Esto te dirá el error exacto en la respuesta si algo falla
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    // app/Http/Controllers/AdminController.php
 
     public function approveComment(Request $request, $id) // Agregamos Request aunque no se use
     {
@@ -126,10 +107,6 @@ class AdminController extends Controller
         $comment->delete();
 
         return response()->json(['message' => 'Comentario eliminado correctamente']);
-    }
-
-    public function getAllComments() {
-        return Comment::with(['user', 'recipe:id,title'])->latest()->get();
     }
 
     public function updateComment(Request $request, $id)
@@ -164,14 +141,17 @@ class AdminController extends Controller
         return response()->json(['message' => 'Rechazado']);
     }
 
-    public function getAllRecipes()
-    {
-        $recipes = Recipe::with(['user', 'categories', 'ingredients'])
-            ->withCount('comments')
+    public function getPendingComments() {
+        return Comment::with(['user', 'recipe:id,title'])
+            ->where('is_moderated', 0)
             ->latest()
             ->get();
+    }
 
-        return response()->json($recipes);
+    public function getAllComments() {
+        return Comment::with(['user', 'recipe:id,title'])
+            ->latest()
+            ->get();
     }
 
     public function destroyRecipe($id)
