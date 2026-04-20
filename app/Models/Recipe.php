@@ -30,15 +30,18 @@ class Recipe extends Model
     {
         if (empty($value)) return [];
 
-        // Si ya es un array (por el cast), lo devolvemos
-        if (is_array($value)) return $value;
-
-        // Si es un string que parece un JSON (ej: ["url1","url2"])
-        if (is_string($value) && str_starts_with($value, '[')) {
-            return json_decode($value, true) ?: [];
+        // Si ya es un array (por el cast), lo devolvemos tal cual
+        if (is_array($value)) {
+            return array_values(array_filter($value)); // Limpia nulos y resetea índices
         }
 
-        // Si es un string simple, lo metemos en un array
+        // Si es un string que parece un JSON ["url","url"]
+        if (is_string($value) && str_starts_with($value, '[')) {
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? array_values($decoded) : [];
+        }
+
+        // Si es un string simple de una sola URL
         return [$value];
     }
 

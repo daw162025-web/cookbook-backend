@@ -46,6 +46,5 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::put('/recipes/{id}', [AdminController::class, 'updateRecipe']);
     Route::delete('/recipes/{id}', [AdminController::class, 'destroyRecipe']);
     Route::get('/categories', [AdminController::class, 'getAllCategories']);
-    Route::get('/comments', [AdminController::class, 'getPendingComments']);
-
+    Route::get('/comments/pending', [AdminController::class, 'getPendingComments']);
 });
