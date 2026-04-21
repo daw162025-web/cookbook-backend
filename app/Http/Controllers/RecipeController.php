@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Recipe;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Cloudinary\Cloudinary;
 use Illuminate\Support\Facades\Auth;
@@ -283,8 +284,17 @@ class RecipeController extends Controller
 
     public function getByCategory($id)
     {
-        return Recipe::whereHas('categories', function ($q) use ($id) {
-            $q->where('categories.id', $id);
+        // Obtenemos los IDs de la categoría y sus hijas secuencialmente
+        $categoryIds = [$id];
+        $category = Category::find($id);
+
+        if ($category) {
+            $childIds = $category->children()->pluck('id')->toArray();
+            $categoryIds = array_merge($categoryIds, $childIds);
+        }
+
+        return Recipe::whereHas('categories', function ($q) use ($categoryIds) {
+            $q->whereIn('categories.id', $categoryIds);
         })
             ->where('status', 'published')
             ->with(['user:id,name', 'categories'])
@@ -367,7 +377,7 @@ class RecipeController extends Controller
         $comment = \App\Models\Comment::create([
             'user_id' => auth()->id(),
             'recipe_id' => $id,
-            'content' => $request->content,
+            'content' => $request->input('content'),
             'is_moderated' => false // Por defecto sin moderar
         ]);
 
