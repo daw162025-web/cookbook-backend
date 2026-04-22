@@ -34,33 +34,33 @@ class Recipe extends Model
             get: function ($value) {
                 if (empty($value)) return [];
 
-                // Si ya es un array (porque Laravel lo decodificó), lo limpiamos
-                if (is_array($value)) {
-                    $cleaned = array_values(array_filter($value));
-                    // Si el primer elemento es un string JSON (doble encoding), decodificamos de nuevo
-                    if (!empty($cleaned) && is_string($cleaned[0]) && str_starts_with($cleaned[0], '[')) {
-                        $nested = json_decode($cleaned[0], true);
-                        if (is_array($nested)) return $nested;
+                // Función recursiva para decodificar JSON anidado
+                $decode = function($val) use (&$decode) {
+                    if (is_array($val)) {
+                        return array_map($decode, $val);
                     }
-                    return $cleaned;
-                }
-
-                // Caso especial: si es un string JSON que no fue decodificado
-                if (is_string($value) && str_starts_with($value, '[')) {
-                    $decoded = json_decode($value, true);
-                    if (is_array($decoded)) {
-                        // Verificamos si hay doble encoding dentro del primer elemento
-                        if (!empty($decoded) && is_string($decoded[0]) && str_starts_with($decoded[0], '[')) {
-                            $nested = json_decode($decoded[0], true);
-                            if (is_array($nested)) return $nested;
+                    if (is_string($val) && str_starts_with($val, '[')) {
+                        $decoded = json_decode($val, true);
+                        if (is_array($decoded)) {
+                            return $decode($decoded);
                         }
-                        return array_values($decoded);
                     }
-                    return [];
+                    return $val;
+                };
+
+                $result = $decode($value);
+                
+                // Si el resultado es un array de un solo elemento que sigue siendo un array, lo aplanamos
+                if (is_array($result)) {
+                    $result = array_values(array_filter($result));
+                    // Si es un array de arrays (ej: [["url"]]), aplanamos el primer nivel
+                    if (!empty($result) && is_array($result[0])) {
+                        return array_values(array_filter($result[0]));
+                    }
+                    return $result;
                 }
 
-                // Si es un string simple, lo envolvemos en un array
-                return [$value];
+                return [$result];
             },
             set: function ($value) {
                 // Si ya es una cadena JSON válida, la guardamos tal cual (o mejor, la decodificamos para re-encodearla bien)
