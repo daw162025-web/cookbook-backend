@@ -36,23 +36,40 @@ class Recipe extends Model
 
                 // Si ya es un array (porque Laravel lo decodificó), lo limpiamos
                 if (is_array($value)) {
-                    return array_values(array_filter($value));
+                    $cleaned = array_values(array_filter($value));
+                    // Si el primer elemento es un string JSON (doble encoding), decodificamos de nuevo
+                    if (!empty($cleaned) && is_string($cleaned[0]) && str_starts_with($cleaned[0], '[')) {
+                        $nested = json_decode($cleaned[0], true);
+                        if (is_array($nested)) return $nested;
+                    }
+                    return $cleaned;
                 }
 
                 // Caso especial: si es un string JSON que no fue decodificado
                 if (is_string($value) && str_starts_with($value, '[')) {
                     $decoded = json_decode($value, true);
-                    return is_array($decoded) ? array_values($decoded) : [];
+                    if (is_array($decoded)) {
+                        // Verificamos si hay doble encoding dentro del primer elemento
+                        if (!empty($decoded) && is_string($decoded[0]) && str_starts_with($decoded[0], '[')) {
+                            $nested = json_decode($decoded[0], true);
+                            if (is_array($nested)) return $nested;
+                        }
+                        return array_values($decoded);
+                    }
+                    return [];
                 }
 
                 // Si es un string simple, lo envolvemos en un array
                 return [$value];
             },
             set: function ($value) {
-                // Para evitar el error de mapeo de columnas numéricas (0, 1, 2...)
-                // devolvemos un array con el nombre de la columna explícito.
+                // Si ya es una cadena JSON válida, la guardamos tal cual (o mejor, la decodificamos para re-encodearla bien)
+                if (is_string($value) && str_starts_with($value, '[')) {
+                    $value = json_decode($value, true);
+                }
+
                 $array = is_array($value) ? $value : [$value];
-                return ['image_url' => json_encode($array)];
+                return ['image_url' => json_encode(array_values(array_filter($array)))];
             }
         );
     }
@@ -86,17 +103,35 @@ class Recipe extends Model
                 if (empty($value)) return [];
                 
                 // Si ya es array (por el cast), lo devolvemos
-                if (is_array($value)) return $value;
+                if (is_array($value)) {
+                    // Check for double encoding
+                    if (!empty($value) && is_string($value[0]) && str_starts_with($value[0], '[')) {
+                        $nested = json_decode($value[0], true);
+                        if (is_array($nested)) return $nested;
+                    }
+                    return $value;
+                }
 
                 // Si es string JSON
                 if (is_string($value) && str_starts_with($value, '[')) {
                     $decoded = json_decode($value, true);
-                    return is_array($decoded) ? $decoded : [$value];
+                    if (is_array($decoded)) {
+                         // Check for double encoding
+                        if (!empty($decoded) && is_string($decoded[0]) && str_starts_with($decoded[0], '[')) {
+                            $nested = json_decode($decoded[0], true);
+                            if (is_array($nested)) return $nested;
+                        }
+                        return $decoded;
+                    }
+                    return [$value];
                 }
 
                 return [$value];
             },
             set: function ($value) {
+                if (is_string($value) && str_starts_with($value, '[')) {
+                    $value = json_decode($value, true);
+                }
                 // Devolvemos el nombre de la columna para evitar el error 'Column 0'
                 return ['instructions' => json_encode($value)];
             }

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Comment;
+use App\Models\Rating;
 use App\Models\Recipe;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -93,10 +95,10 @@ class RecipeController extends Controller
                 'user_id' => Auth::id(),
                 'title' => $validatedData['title'],
                 'description' => $validatedData['description'],
-                'instructions' => json_encode(json_decode($validatedData['steps'])),
+                'instructions' => json_decode($validatedData['steps']),
                 'duration' => $validatedData['duration'],
                 'difficulty' => $validatedData['difficulty'],
-                'image_url' => json_encode($imageUrls),
+                'image_url' => $imageUrls,
                 'status' => 'published'
             ]);
 
@@ -189,7 +191,7 @@ class RecipeController extends Controller
 
             // Si mandó existing_images o fotos nuevas, actualizamos.
             if ($request->has('existing_images') || $request->hasFile('images')) {
-                $recipe->image_url = json_encode($finalImages);
+                $recipe->image_url = $finalImages;
             }
 
             // Actualizamos los campos directos si existen en la request
@@ -198,7 +200,7 @@ class RecipeController extends Controller
             if ($request->has('description'))
                 $recipe->description = $validatedData['description'];
             if ($request->has('steps'))
-                $recipe->instructions = json_encode(json_decode($validatedData['steps']));
+                $recipe->instructions = json_decode($validatedData['steps']);
             if ($request->has('duration'))
                 $recipe->duration = $validatedData['duration'];
             if ($request->has('difficulty'))
@@ -310,7 +312,7 @@ class RecipeController extends Controller
     {
         $user = auth()->user();
 
-        // 1. Buscamos si ya existe la relación en la tabla favoritos
+        // Buscamos si ya existe la relación en la tabla favoritos
         $isFavorite = $user->favoriteRecipes()->where('recipe_id', $id)->exists();
 
         if ($isFavorite) {
@@ -349,13 +351,13 @@ class RecipeController extends Controller
 
         $user = auth()->user();
 
-        // updateOrCreate: si existe lo actualiza, si no lo crea
-        $rating = \App\Models\Rating::updateOrCreate(
+        //si existe lo actualiza, si no lo crea
+        $rating = Rating::updateOrCreate(
             ['user_id' => $user->id, 'recipe_id' => $id],
             ['score' => $request->score]
         );
 
-        // Opcional: Recalcular la media para devolverla al front
+        // Recalcular la media para devolverla al front
         $recipe = Recipe::withCount([
             'ratings as avg_rating' => function ($query) {
                 $query->select(DB::raw('coalesce(avg(score), 0)'));
@@ -374,7 +376,7 @@ class RecipeController extends Controller
             'content' => 'required|string|min:3'
         ]);
 
-        $comment = \App\Models\Comment::create([
+        $comment = Comment::create([
             'user_id' => auth()->id(),
             'recipe_id' => $id,
             'content' => $request->input('content'),
