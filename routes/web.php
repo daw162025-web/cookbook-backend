@@ -25,9 +25,4 @@ Route::get('/ejecutar-seed', function () {
     }
 });
 
-// web.php
-Route::get('/clear-cache', function() {
-    Artisan::call('route:clear');
-    Artisan::call('config:clear');
-    return "Caché de rutas limpia";
-});
+
