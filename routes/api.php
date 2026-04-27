@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/recipes/{id}/rate', [RecipeController::class, 'rate']);
     Route::post('/recipes/{id}/comments', [RecipeController::class, 'addComment']);
     Route::post('recipes/search-history', [SearchController::class, 'store']);
+    Route::get('recipes/search-history', [SearchController::class, 'index']);
 });
 //Panel de admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
