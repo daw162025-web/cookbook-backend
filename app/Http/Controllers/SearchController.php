@@ -11,6 +11,7 @@ class SearchController extends Controller
     {
         $history = SearchHistory::where('user_id', auth()->id())
             ->select('search_term')
+            ->selectRaw('MAX(id) as id') // Necesitamos el ID para poder borrarlo luego
             ->selectRaw('MAX(created_at) as last_search_at')
             ->groupBy('search_term')
             ->orderBy('last_search_at', 'desc')
