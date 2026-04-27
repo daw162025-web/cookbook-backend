@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/recipes/{id}/comments', [RecipeController::class, 'addComment']);
     Route::post('/search-history', [SearchController::class, 'store']);
     Route::get('/search-history', [SearchController::class, 'index']);
+    Route::delete('/search-history/{id}', [SearchController::class, 'destroy']);
 });
 //Panel de admin
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {

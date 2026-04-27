@@ -41,4 +41,10 @@ class SearchController extends Controller
 
         return response()->json($search, 201);
     }
+
+    public function destroy($id) {
+        $search = SearchHistory::where('user_id', auth()->id())->where('id', $id)->firstOrFail();
+        $search->delete();
+        return response()->json(['message' => 'Eliminado']);
+    }
 }
