@@ -11,8 +11,9 @@ class SearchController extends Controller
     {
         $history = SearchHistory::where('user_id', auth()->id())
             ->select('search_term')
-            ->distinct()
-            ->orderBy('created_at', 'desc')
+            ->selectRaw('MAX(created_at) as last_search_at')
+            ->groupBy('search_term')
+            ->orderBy('last_search_at', 'desc')
             ->take(10)
             ->get();
 
