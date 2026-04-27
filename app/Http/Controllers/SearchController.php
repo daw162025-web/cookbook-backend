@@ -10,7 +10,7 @@ class SearchController extends Controller
     public function index()
     {
         $history = SearchHistory::where('user_id', auth()->id())
-            ->select('query')
+            ->select('search_term')
             ->distinct()
             ->orderBy('created_at', 'desc')
             ->take(10)
@@ -22,20 +22,20 @@ class SearchController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'query' => 'required|string|max:255'
+            'search_term' => 'required|string|max:255'
         ]);
 
         $lastSearch = SearchHistory::where('user_id', auth()->id())
             ->orderBy('created_at', 'desc')
             ->first();
 
-        if ($lastSearch && $lastSearch->query === $request->input('query')) {
+        if ($lastSearch && $lastSearch->search_term === $request->input('search_term')) {
             return response()->json(['message' => 'Búsqueda repetida, no se guarda'], 200);
         }
 
         $search = SearchHistory::create([
             'user_id' => auth()->id(),
-            'query' => $request->input('query')
+            'search_term' => $request->input('search_term')
         ]);
 
         return response()->json($search, 201);
